@@ -453,6 +453,14 @@ vendor_deps() {
     local cache_dir="$SCRIPT_DIR/.cache/pip-vendor"
     mkdir -p "$cache_dir"
 
+    # Drop packages from the old jsonschema>=4.18 chain. They are no longer
+    # required, and a stale ABI-specific rpds .so must never be shipped.
+    rm -rf "$SCRIPT_DIR/py_modules/rpds" "$SCRIPT_DIR/py_modules/referencing" \
+           "$SCRIPT_DIR/py_modules/jsonschema_specifications" \
+           "$SCRIPT_DIR"/py_modules/rpds_py-*.dist-info \
+           "$SCRIPT_DIR"/py_modules/referencing-*.dist-info \
+           "$SCRIPT_DIR"/py_modules/jsonschema_specifications-*.dist-info
+
     # --target installs into py_modules/ instead of site-packages.
     # --platform + --python-version + --only-binary force the
     # SteamOS-compatible wheel set regardless of host interpreter.

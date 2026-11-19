@@ -29,34 +29,86 @@ PYTHON_CANDIDATES: list[str] = [
     "/usr/bin/python3.11",
     "/usr/bin/python3.10",
     "/usr/bin/python3",
+    # Immutable distros (Bazzite, Silverblue, Nix, Homebrew) may keep a usable
+    # interpreter off /usr/bin, or expose the host's one only here.
+    "/usr/local/bin/python3",
+    "/run/host/usr/bin/python3",
+    "/home/linuxbrew/.linuxbrew/bin/python3",
 ]
+MIN_VERSION = (3, 10)
+# Kept for callers/tests that want the known-good set; selection itself now
+# accepts ANY >= 3.10 so a new CPython (3.15...) never reads as "no Python".
 ACCEPTED_VERSIONS = {"3.10", "3.11", "3.12", "3.13", "3.14"}
+# Variables that redirect or break a *system* interpreter when inherited from
+# Decky's PyInstaller process or the Steam runtime (e.g. ``PYTHONHOME`` or
+# ``LD_LIBRARY_PATH`` pointing into ``/tmp/_MEI*``). A probe run with them
+# set can crash, which used to look like "no Python 3.10+ found".
+_PROBE_ENV_SCRUB = (
+    "PYTHONHOME", "PYTHONPATH", "PYTHONSTARTUP", "PYTHONEXECUTABLE",
+    "PYTHONNOUSERSITE", "LD_LIBRARY_PATH", "LD_PRELOAD",
+)
+
+
+def _probe_env() -> dict[str, str]:
+    import os
+
+    env = {k: v for k, v in os.environ.items() if k not in _PROBE_ENV_SCRUB}
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return env
+
+
+def _candidate_paths() -> list[str]:
+    """Fixed candidates, then any ``python3`` found on ``PATH`` (deduped)."""
+    import shutil
+
+    found: list[str] = list(PYTHON_CANDIDATES)
+    for name in ("python3.14", "python3.13", "python3.12", "python3.11",
+                 "python3.10", "python3", "python"):
+        hit = shutil.which(name)
+        if hit and hit not in found:
+            found.append(hit)
+    return found
+
+
+def _probe_version(candidate: str) -> tuple[int, int] | None:
+    """``(major, minor)`` of *candidate*, or ``None`` if it cannot run."""
+    try:
+        out = subprocess.check_output(
+            [
+                candidate,
+                "-c",
+                'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")',
+            ],
+            stderr=subprocess.DEVNULL,
+            timeout=20,  # cold start of a rarely-used interpreter can be slow
+            env=_probe_env(),
+        )
+        major, minor = out.decode().strip().split(".")[:2]
+        return int(major), int(minor)
+    except (subprocess.SubprocessError, OSError, ValueError) as exc:
+        logger.warning("[launcher.proton] python probe failed: %s (%s)", candidate, exc)
+        return None
+
+
 def find_python_3_10_plus() -> Path:
-    """Find python 3 10 plus."""
-    for candidate in PYTHON_CANDIDATES:
+    """Find the first usable Python >= 3.10 on this system."""
+    tried: list[str] = []
+    for candidate in _candidate_paths():
         path = Path(candidate)
         if not path.is_file():
             continue
-        try:
-            out = subprocess.check_output(
-                [
-                    candidate,
-                    "-c",
-                    'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")',
-                ],
-                stderr=subprocess.DEVNULL,
-                timeout=5,
+        tried.append(candidate)
+        ver = _probe_version(candidate)
+        if ver is not None and ver >= MIN_VERSION:
+            logger.info(
+                "[launcher.proton] python selected: %s (%d.%d)", candidate, *ver,
             )
-        except (subprocess.SubprocessError, OSError):
-            continue
-        ver = out.decode().strip()
-        if ver in ACCEPTED_VERSIONS:
-            logger.info("[launcher.proton] python selected: %s (%s)", candidate, ver)
             return path
     raise DependencyMissingError(
         "No Python 3.10+ interpreter found on system",
-        context={"tried": PYTHON_CANDIDATES},
+        context={"tried": tried, "searched": _candidate_paths()},
     )
+
 
 # Compat-tool roots live in ``vdf_compat`` — see ``compat_tool_roots()``.
 # Deliberately not re-exported here: a module attribute that mirrors the
