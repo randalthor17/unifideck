@@ -439,7 +439,7 @@ DECK_PYTHON_VERSION="3.11"
 # published cffi wheel are skipped gracefully. See vendor_launcher_cffi().
 # Keep this range in sync with ACCEPTED_VERSIONS in
 # py_modules/unifideck/launcher/proton/infrastructure/selector.py.
-LAUNCHER_PYTHON_VERSIONS=(3.10 3.11 3.12 3.13 3.14)
+LAUNCHER_PYTHON_VERSIONS=(3.10 3.11 3.12 3.13 3.14 3.15)
 DECK_PLATFORM_TAG="manylinux2014_x86_64"
 
 vendor_deps() {
@@ -452,6 +452,14 @@ vendor_deps() {
     # Use a quiet cache dir so repeated builds don't re-download.
     local cache_dir="$SCRIPT_DIR/.cache/pip-vendor"
     mkdir -p "$cache_dir"
+
+    # Drop packages from the old jsonschema>=4.18 chain. They are no longer
+    # required, and a stale ABI-specific rpds .so must never be shipped.
+    rm -rf "$SCRIPT_DIR/py_modules/rpds" "$SCRIPT_DIR/py_modules/referencing" \
+           "$SCRIPT_DIR/py_modules/jsonschema_specifications" \
+           "$SCRIPT_DIR"/py_modules/rpds_py-*.dist-info \
+           "$SCRIPT_DIR"/py_modules/referencing-*.dist-info \
+           "$SCRIPT_DIR"/py_modules/jsonschema_specifications-*.dist-info
 
     # --target installs into py_modules/ instead of site-packages.
     # --platform + --python-version + --only-binary force the

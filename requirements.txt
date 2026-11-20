@@ -87,7 +87,18 @@ cryptography>=50.0.0,<51.0
 # ``attrs`` package fails with ``ImportError: cannot import name
 # 'Converter' from 'attr'``. Pinning <4.24 keeps the entire
 # attrs ↔ jsonschema chain compatible with Decky's 23.2.0.
-jsonschema>=4.17,<4.24
+#
+# Ceiling tightened to <4.18 to avoid ``rpds-py``. jsonschema 4.18+
+# depends on ``referencing`` -> ``rpds-py``, a Rust extension built per
+# CPython ABI. We vendor for one interpreter, but Decky 3.3.x runs the
+# backend on cp314 while older Loaders use cp311, so a vendored cp311
+# ``rpds`` fails with ``ModuleNotFoundError: rpds.rpds`` on the other
+# one and the plugin boots degraded. 4.17.3 (last 4.17 release) has no
+# ``referencing``/``rpds`` and uses ``pyrsistent``, which falls back to
+# pure Python when its optional C extension does not match the ABI.
+# Draft-07 validation (all we use) is unchanged.
+jsonschema>=4.17,<4.18
+pyrsistent>=0.19,<1.0
 
 # attrs — dataclass-like declarative classes. Required by
 # jsonschema, referencing, and jsonschema-specifications.
