@@ -439,7 +439,7 @@ DECK_PYTHON_VERSION="3.11"
 # published cffi wheel are skipped gracefully. See vendor_launcher_cffi().
 # Keep this range in sync with ACCEPTED_VERSIONS in
 # py_modules/unifideck/launcher/proton/infrastructure/selector.py.
-LAUNCHER_PYTHON_VERSIONS=(3.10 3.11 3.12 3.13 3.14)
+LAUNCHER_PYTHON_VERSIONS=(3.10 3.11 3.12 3.13 3.14 3.15)
 DECK_PLATFORM_TAG="manylinux2014_x86_64"
 
 vendor_deps() {

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # build time: keep ACCEPTED_VERSIONS in sync with LAUNCHER_PYTHON_VERSIONS in
 # build-plugin.sh so a backend is shipped for every host Python we accept.
 PYTHON_CANDIDATES: list[str] = [
+    "/usr/bin/python3.15",
     "/usr/bin/python3.14",
     "/usr/bin/python3.13",
     "/usr/bin/python3.12",
@@ -38,7 +39,7 @@ PYTHON_CANDIDATES: list[str] = [
 MIN_VERSION = (3, 10)
 # Kept for callers/tests that want the known-good set; selection itself now
 # accepts ANY >= 3.10 so a new CPython (3.15...) never reads as "no Python".
-ACCEPTED_VERSIONS = {"3.10", "3.11", "3.12", "3.13", "3.14"}
+ACCEPTED_VERSIONS = {"3.10", "3.11", "3.12", "3.13", "3.14", "3.15"}
 # Variables that redirect or break a *system* interpreter when inherited from
 # Decky's PyInstaller process or the Steam runtime (e.g. ``PYTHONHOME`` or
 # ``LD_LIBRARY_PATH`` pointing into ``/tmp/_MEI*``). A probe run with them
@@ -62,7 +63,7 @@ def _candidate_paths() -> list[str]:
     import shutil
 
     found: list[str] = list(PYTHON_CANDIDATES)
-    for name in ("python3.14", "python3.13", "python3.12", "python3.11",
+    for name in ("python3.15", "python3.14", "python3.13", "python3.12", "python3.11",
                  "python3.10", "python3", "python"):
         hit = shutil.which(name)
         if hit and hit not in found:
