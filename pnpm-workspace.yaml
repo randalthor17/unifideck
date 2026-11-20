@@ -10,3 +10,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+
+# pnpm 10 spelling of the same approval (pnpm 11+/12 read allowBuilds above).
+onlyBuiltDependencies:
+  - esbuild
